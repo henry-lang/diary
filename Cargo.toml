@@ -1,0 +1,15 @@
+[package]
+name = "dry"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ansi_term = "0.12.1"
+argh = "0.1.10"
+chrono = { version = "0.4.26", default-features = false, features = ["clock"] }
+home = "0.5.5"
+
+[profile.release]
+lto = true
