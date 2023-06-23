@@ -1,6 +1,12 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use argh::FromArgs;
+
+fn default_diary_path() -> PathBuf {
+    [&home::home_dir().expect("get home directory - use --diary-path to supply your own"), Path::new("diary")]
+        .iter()
+        .collect::<PathBuf>()
+}
 
 #[derive(FromArgs)]
 #[argh(description = "commands")]
@@ -23,7 +29,7 @@ pub enum Command {
 pub struct InitCommand {
     #[argh(
         option,
-        default = "PathBuf::new()",
+        default = "default_diary_path()",
         description = "the root path of the diary"
     )]
     pub diary_path: PathBuf,
