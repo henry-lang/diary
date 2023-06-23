@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use argh::FromArgs;
 
 #[derive(FromArgs)]
@@ -10,9 +12,28 @@ pub struct Args {
 #[derive(FromArgs)]
 #[argh(subcommand)]
 pub enum Command {
+    Init(InitCommand),
     Yesterday(YesterdayCommand),
     Today(TodayCommand),
     Random(RandomCommand),
+}
+
+#[derive(FromArgs)]
+#[argh(subcommand, name = "init", description = "initialize the diary")]
+pub struct InitCommand {
+    #[argh(
+        option,
+        default = "PathBuf::new()",
+        description = "the root path of the diary"
+    )]
+    pub diary_path: PathBuf,
+
+    #[argh(
+        option,
+        default = "\"vim\".into()",
+        description = "the editor used to open entries"
+    )]
+    pub editor: String,
 }
 
 #[derive(FromArgs)]
