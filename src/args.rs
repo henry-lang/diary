@@ -3,9 +3,12 @@ use std::path::{Path, PathBuf};
 use argh::FromArgs;
 
 fn default_diary_path() -> PathBuf {
-    [&home::home_dir().expect("get home directory - use --diary-path to supply your own"), Path::new("diary")]
-        .iter()
-        .collect::<PathBuf>()
+    [
+        &home::home_dir().expect("get home directory - use --diary-path to supply your own"),
+        Path::new("diary"),
+    ]
+    .iter()
+    .collect::<PathBuf>()
 }
 
 #[derive(FromArgs)]

@@ -1,6 +1,9 @@
+#![feature(iter_next_chunk)]
+
 use std::{
     error::Error,
-    fs::{self, File, OpenOptions}, io::{self, Write},
+    fs::{self, File},
+    io::Write,
     path::{Path, PathBuf},
 };
 
@@ -11,9 +14,8 @@ use chrono::{
 
 use serde::{Deserialize, Serialize};
 
-use ansi_term::Color::Blue;
-
 mod args;
+mod frontmatter;
 use args::{Args, Command, InitCommand};
 
 const ENTRY_FORMAT: &str = "%m-%d-%Y.md";
@@ -26,7 +28,7 @@ pub fn entry_from_filename(filename: &Path) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(filename.to_str()?, ENTRY_FORMAT).ok()
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct Config {
     diary_path: PathBuf,
     editor: String,
@@ -34,7 +36,7 @@ struct Config {
 
 impl Config {
     pub fn new(diary_path: PathBuf, editor: String) -> Self {
-        Self {diary_path, editor}
+        Self { diary_path, editor }
     }
 }
 
@@ -47,38 +49,44 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         .iter()
         .collect::<PathBuf>();
 
-    let config_exists = fs::metadata(&config_path).is_ok_and(|m| m.is_file());
-
-    if let Command::Init(InitCommand {diary_path, editor}) = args.command {
-        if config_exists {
+    if let Command::Init(InitCommand { diary_path, editor }) = args.command {
+        if config_path.is_file() {
             println!("Config already exists at {}. Delete it and rerun the command to generate a new one.", config_path.to_str().expect("path is valid utf-8"));
-            return Ok(())
+            return Ok(());
         }
 
         let config = Config::new(diary_path, editor);
 
-        fs::create_dir_all(&config_path.parent().unwrap())?;
+        fs::create_dir_all(config_path.parent().unwrap())?;
         File::create(&config_path)?.write_all(toml::to_string_pretty(&config)?.as_bytes())?;
 
-        println!("Config created at {}", config_path.to_str().expect("path is valid utf-8"));
-        return Ok(())
+        println!(
+            "Config created at {}",
+            config_path.to_str().expect("path is valid utf-8")
+        );
+        return Ok(());
     }
- 
-    let config = toml::from_str::<Config>(&fs::read_to_string(&config_path).expect("read config file")).expect("parse config file");
+
+    let config =
+        toml::from_str::<Config>(&fs::read_to_string(&config_path).expect("read config file"))
+            .expect("parse config file");
 
     let today = Local::now().date_naive();
     match args.command {
         Command::Init(_) => {
-            println!("{:?}", config.diary_path.with_file_name(get_entry_filename(&today).to_string()));
+            println!(
+                "{:?}",
+                config
+                    .diary_path
+                    .with_file_name(get_entry_filename(&today).to_string())
+            );
         }
 
         Command::Yesterday(_) => {
             let yesterday = today - Days::new(1);
             println!("{}", get_entry_filename(&yesterday));
         }
-        Command::Today(_) => {
-
-        }
+        Command::Today(_) => {}
         Command::Random(_) => {}
     }
 
