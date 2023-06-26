@@ -21,6 +21,6 @@ pub fn parse<T: DeserializeOwned>(data: &str) -> Result<(T, &str), ParseError> {
     } else {
         let start = start + FRONTMATTER_SEPERATOR.len();
         let content = &data[start..end];
-        Ok((toml::from_str(content).map_err(|e| ParseError::Toml(e))?, &data[end + FRONTMATTER_SEPERATOR.len()..]))
+        Ok((toml::from_str(content).map_err(ParseError::Toml)?, &data[end + FRONTMATTER_SEPERATOR.len()..]))
     }
 }

@@ -3,7 +3,8 @@
 use std::{
     error::Error,
     fs::{self, File},
-    io::Write,
+    io::{Write, self},
+    process::Command as ProcessCommand,
     path::{Path, PathBuf},
 };
 
@@ -13,6 +14,7 @@ use chrono::{
 };
 
 use serde::{Deserialize, Serialize};
+use ansi_term::Color::White;
 
 mod args;
 mod frontmatter;
@@ -24,8 +26,17 @@ pub fn get_entry_filename(date: &NaiveDate) -> DelayedFormat<StrftimeItems<'_>> 
     date.format(ENTRY_FORMAT)
 }
 
-pub fn entry_from_filename(filename: &Path) -> Option<NaiveDate> {
+fn entry_from_filename(filename: &Path) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(filename.to_str()?, ENTRY_FORMAT).ok()
+}
+
+fn edit_entry(config: &Config, date: &NaiveDate) -> io::Result<()> {
+    let path = config.diary_path.join(Path::new(&get_entry_filename(date).to_string()));
+    if !path.is_file() {
+        
+    }
+    ProcessCommand::new(&config.editor).arg(path).spawn()?.wait()?;
+    Ok(())
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,12 +53,7 @@ impl Config {
 
 pub fn main() -> Result<(), Box<dyn Error>> {
     let args = argh::from_env::<Args>();
-    let home_dir = home::home_dir().expect("find home directory");
-    let home_dir = home_dir.as_path();
-
-    let config_path = [home_dir, Path::new(".config/diary/config.toml")]
-        .iter()
-        .collect::<PathBuf>();
+    let config_path = home::home_dir().expect("find home directory").join(Path::new(".config/diary/config.toml"));
 
     if let Command::Init(InitCommand { diary_path, editor }) = args.command {
         if config_path.is_file() {
@@ -67,9 +73,16 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
+    if !config_path.is_file() {
+        println!("No config file found. Run {} to generate one.", White.bold().paint("diary init"));
+        return Ok(());
+    }
+
     let config =
         toml::from_str::<Config>(&fs::read_to_string(&config_path).expect("read config file"))
             .expect("parse config file");
+
+    fs::create_dir_all(&config.diary_path)?;
 
     let today = Local::now().date_naive();
     match args.command {
@@ -82,13 +95,15 @@ pub fn main() -> Result<(), Box<dyn Error>> {
             );
         }
 
-        Command::Yesterday(_) => {
-            let yesterday = today - Days::new(1);
-            println!("{}", get_entry_filename(&yesterday));
+        Command::Yesterday(_) => edit_entry(&config, &(today - Days::new(1)))?,
+        Command::Today(_) => edit_entry(&config, &today)?,
+        Command::Random(_) => {
+
         }
-        Command::Today(_) => {}
-        Command::Random(_) => {}
     }
+
+    let x = frontmatter::parse::<Config>("---\ndiary_path = \"/src/\"\neditor = \"vim\"\n---").unwrap();
+    println!("{:?}", x);
 
     Ok(())
 }
