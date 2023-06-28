@@ -25,6 +25,7 @@ pub enum Command {
     Yesterday(YesterdayCommand),
     Today(TodayCommand),
     Random(RandomCommand),
+    Stats(StatsCommand)
 }
 
 #[derive(FromArgs)]
@@ -68,3 +69,11 @@ pub struct TodayCommand {}
     description = "open a random existing entry"
 )]
 pub struct RandomCommand {}
+
+#[derive(FromArgs)]
+#[argh(
+    subcommand,
+    name = "stats",
+    description = "show stats about the diary"
+)]
+pub struct StatsCommand {}

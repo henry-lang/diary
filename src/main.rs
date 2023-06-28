@@ -10,7 +10,7 @@ use std::{
 
 use chrono::{
     format::{DelayedFormat, StrftimeItems},
-    Days, Local, NaiveDate,
+    Days, Local, NaiveDate, Weekday, Datelike,
 };
 
 use serde::{Deserialize, Serialize};
@@ -98,12 +98,33 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         Command::Yesterday(_) => edit_entry(&config, &(today - Days::new(1)))?,
         Command::Today(_) => edit_entry(&config, &today)?,
         Command::Random(_) => {
+            
+        }
+        Command::Stats(_) => {
+            let mut entry_count = 0;
+            let mut word_count = 0;
 
+            let diary_entries = fs::read_dir(&config.diary_path)?;
+            for entry in diary_entries {
+                if let Ok(entry) = entry {
+                    entry_count += 1;
+                    let content = fs::read_to_string(entry.path())?;
+                    let content = frontmatter::skip(&content).unwrap();
+                    word_count += content.split_whitespace().count();
+                }
+            }
+
+
+            let total_entries = entry_count;
+            let total_words = word_count;
+            let avg_words_per_entry = word_count as f64 / entry_count as f64;
+
+
+            println!("Total Entries: {}", total_entries);
+            println!("Total Words: {}", total_words);
+            println!("Average Words per Entry: {:.2}", avg_words_per_entry);
         }
     }
-
-    let x = frontmatter::parse::<Config>("---\ndiary_path = \"/src/\"\neditor = \"vim\"\n---").unwrap();
-    println!("{:?}", x);
 
     Ok(())
 }
